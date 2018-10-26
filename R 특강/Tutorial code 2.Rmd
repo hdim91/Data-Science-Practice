@@ -1,0 +1,108 @@
+---
+title: "Part 2"
+author: "Hyundo Im"
+date: "October 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Crawling & Data Cleaning packages
+library(tidyverse)
+library(httr)
+library(XML)
+library(rvest)
+library(xlsx)
+library(stringr)
+library(readxl)
+library(data.table)
+```
+```{r}
+test_url1 <-"http://www.dbpia.co.kr/SearchResult/Search?q=%28%5B%EA%B3%BC%ED%95%99+%EC%A0%84%EC%8B%9C%C2%A7coldb%C2%A72%C2%A751%C2%A73%5D%29&searchWord=%EC%A0%84%EC%B2%B4%3D%5E%24%EA%B3%BC%ED%95%99+%EC%A0%84%EC%8B%9C%5E*&Collection=0&nSort=1&nSorttype=desc&Page="
+test_url2 <- "&nPagesize=200&searchAll=%EA%B3%BC%ED%95%99+%EC%A0%84%EC%8B%9C&Multimedia=0&specificParam=0&isFullText=0"
+test_url <- c()
+for(i in 1:8){
+  test_url <- c(test_url, paste0(test_url1,i,test_url2))
+}
+test_url1[1]
+```
+```{r}
+
+```
+```{r}
+options(timeout = 4000000)
+
+test_href <- c()
+test_title <- c()
+test_dates <- c()
+for(i in 1:length(test_url)){
+  test_web <- GET(test_url[i])
+  test_txt <- read_html(test_web)
+  link <- html_nodes(test_txt,"div.titleWarp a")
+  test_href <- c(test_href, paste0("http://www.dbpia.co.kr/",unique(html_attr(link,"href"))))
+  test_title <- c(test_title, try(html_text(html_nodes(test_txt, "div.titleWarp a")),TRUE))
+}
+
+test_df <- data.frame(Title = NA, href = test_href, Dates=NA, Author=NA)
+test_df$href <- as.character(test_df$href)
+```
+```{r}
+options(timeout = 4000000)
+
+for(i in 1:length(test_df$href)){
+  article_url <- test_df$href[i]
+  article_web <- try(GET(article_url))
+  article_html <- try(read_html(article_web))
+  article_title <- try(html_text(html_nodes(article_html,"div.book_info h3")))
+  article_date <- try(html_text(html_nodes(article_html,"div.book_info dl dt")))
+  article_date <- article_date[1]
+  article_date <- strsplit(article_date,",")
+  article_date <- article_date[[1]][2]
+  article_date <- gsub(" ","",article_date)
+  article_author <- try(html_text(html_nodes(article_html,"div.writeInfo")))
+  article_author <- gsub(" ","",article_author)
+  article_author <- gsub("\r\n","",article_author)
+  try(test_df$Title[test_df$href==article_url] <- article_title)
+  try(test_df$Dates[test_df$href==article_url] <- article_date)
+  try(test_df$Author[test_df$href==article_url] <- article_author)
+}
+head(test_df)
+```
+```{r}
+test_df$Date <- gsub("[.]","-",test_df$Dates)
+test_df$Date <- as.Date(test_df$Date,"%Y-%M")
+test_df1 <- test_df%>%filter(!is.na(Dates))
+test_df1$Year <- as.Date(gsub("[^0-9]","",test_df1$Dates),"%Y%M")
+test_df1 <- test_df1%>%filter(!is.na(Year))
+test_df1
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+
+```

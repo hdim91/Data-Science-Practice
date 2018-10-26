@@ -1,0 +1,111 @@
+---
+title: "1st Session"
+author: "Hyundo Im"
+date: '2018 10 25 '
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(data.table)
+library(psych)
+```
+```{r}
+url<-'https://raw.githubusercontent.com/collnell/burritos/master/sd_burritos.csv'
+ritos <- fread(url)
+```
+```{r}
+ritos
+```
+```{r}
+df<-select(ritos, Taste, Rec, Cost, Volume)
+df<-mutate(df, Cost_vol = Cost / Volume) #average rating
+head(df)
+```
+```{r}
+ritos%>%select(Burrito,Taste,Rec,Cost,Volume)%>%group_by(Burrito)%>%summarise(Average_cost_Burrito=mean(Cost))
+```
+
+```{r}
+summary(lm(Taste~Cost+Volume+Rec,data=df))
+```
+```{r}
+summary(ritos)
+```
+```{r}
+psych::describe(ritos)[,c("n","mean","sd","min","max")]
+```
+```{r}
+cali <- ritos %>%
+filter(NonSD == 0, grepl('california', ritos$Burrito))%>%
+select(-NonSD)%>%
+mutate(Cost_vol = Cost / Volume)
+```
+
+```{r}
+#standard error of the mean x
+sem <- function(x) sd(x, na.rm = TRUE)/sqrt(length(x))
+best <- cali %>%
+filter(!is.na(Fries), !is.na(Beef)) %>%
+select(-(Beef:Zucchini))%>%
+group_by(Neighborhood, Location) %>%
+summarize(quality = mean(Taste, na.rm=TRUE),
+n = length(Taste),
+se = sem(Taste))
+```
+
+```{r}
+best<-best%>%
+filter(n > 1)%>% #remove locations visited only once
+arrange(quality)
+```
+
+```{r}
+ggplot(data = best, aes(x = reorder(Location, quality), y = quality))+
+  geom_bar(stat = 'identity', fill='gold')+
+  geom_errorbar(aes(ymin = quality - se, ymax = quality + se), width = .4)+
+  coord_flip()+
+  labs(title = 'The best burrito', y = 'Burrito Quality', x ='Location')+
+  theme_classic()+
+  theme(legend.position = 'none')
+```
+
+
+```{r}
+t.test(ritos$Volume,mu = 0.5)
+```
+```{r}
+t.test(ritos$Volume[ritos$Rec=="no"],ritos$Volume[ritos$Rec=="yes"])
+```
+```{r}
+summary(aov(Taste~Rec,data=df))
+```
+```{r}
+
+```
+```{r}
+
+```
+```{r}
+# install.packages(c("AER","plm","MASS"))
+library(AER)
+library(plm)
+library(MASS)
+```
+```{r}
+data("CigarettesSW", package = "AER")
+CigarettesSW$rprice <- with(CigarettesSW, price/cpi)
+CigarettesSW$rincome <- with(CigarettesSW, income/population/cpi)
+CigarettesSW$tdiff <- with(CigarettesSW, (taxs - tax)/cpi)
+
+## model 
+fm <- ivreg(log(packs) ~ log(rprice) + log(rincome) | log(rincome) + tdiff + I(tax/cpi),
+  data = CigarettesSW, subset = year == "1995")
+summary(fm)
+summary(fm, vcov = sandwich, df = Inf, diagnostics = TRUE)
+```
+
